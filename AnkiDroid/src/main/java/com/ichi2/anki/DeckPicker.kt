@@ -160,6 +160,7 @@ import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.snackbar.BaseSnackbarBuilderProvider
 import com.ichi2.anki.snackbar.SnackbarBuilder
 import com.ichi2.anki.snackbar.showSnackbar
+import com.ichi2.anki.speedrun.StudyLoopActivity
 import com.ichi2.anki.sync.MeteredSyncPolicy
 import com.ichi2.anki.sync.launchCatchingRequiringOneWaySyncDiscardUndo
 import com.ichi2.anki.ui.BottomFadeFrameLayout
@@ -2000,6 +2001,16 @@ open class DeckPicker :
         // ignore requests(ex: from keyboard shortcuts) when the collection is empty(and
         // adapter has no decks)
         if (deckListAdapter.itemCount <= 0) {
+            return
+        }
+
+        // Speedrun study loop: only the top-level "AnKing-MCAT" deck itself launches the custom
+        // study loop (flashcard blocks + concept/answer questions) instead of the normal reviewer.
+        // Its subdecks study normally. See StudyLoopActivity; the reviewer/scheduler are untouched.
+        val deckName = withCol { decks.name(did) }
+        if (deckName == StudyLoopActivity.TRIGGER_DECK_NAME) {
+            Timber.i("Launching speedrun StudyLoopActivity for deck '%s'", deckName)
+            startActivity(StudyLoopActivity.getIntent(this@DeckPicker, did))
             return
         }
 
