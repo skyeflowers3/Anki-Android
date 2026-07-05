@@ -109,9 +109,10 @@ class StudyLoopActivity : NavigationDrawerActivity(R.layout.activity_study_loop)
         supportActionBar?.title = getString(R.string.app_name)
         homeDeckId = intent.getLongExtra(EXTRA_DECK_ID, 0)
         mergeRemoteRecordsInBackground()
+        refreshGeneratedQuestionsInBackground()
 
         lifecycleScope.launch {
-            questions = withContext(Dispatchers.IO) { SpeedrunQuestions.load(this@StudyLoopActivity) }
+            questions = withContext(Dispatchers.IO) { SpeedrunQuestions.loadMerged(this@StudyLoopActivity) }
             practiceQueue = questions.shuffled()
             showTransition()
         }
@@ -124,6 +125,19 @@ class StudyLoopActivity : NavigationDrawerActivity(R.layout.activity_study_loop)
             val pulled = SpeedrunFirestoreSync.pull()
             pulled.forEach { SpeedrunDb.insertPulledRecord(this@StudyLoopActivity, it) }
             if (pulled.isNotEmpty()) Timber.i("speedrun: merged %d remote records", pulled.size)
+        }
+    }
+
+    /**
+     * Pulls newly eval-passed questions from Firestore in the background and updates the local
+     * cache.  The updated pool will be used on the *next* session start; the current session
+     * continues with the already-loaded [questions].
+     */
+    private fun refreshGeneratedQuestionsInBackground() {
+        if (!SpeedrunQuestionSync.isConfigured) return
+        lifecycleScope.launch(Dispatchers.IO) {
+            val fetched = SpeedrunQuestionSync.pullAndCache(this@StudyLoopActivity)
+            if (fetched.isNotEmpty()) Timber.i("speedrun: refreshed %d generated questions", fetched.size)
         }
     }
 

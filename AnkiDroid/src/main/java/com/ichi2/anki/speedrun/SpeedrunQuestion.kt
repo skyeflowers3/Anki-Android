@@ -39,15 +39,17 @@ data class SpeedrunQuestion(
     val concept: String,
 )
 
+/** Package-internal so [SpeedrunQuestionSync] can serialise/deserialise the cache file. */
 @Serializable
-private data class SpeedrunQuestionBank(
+internal data class SpeedrunQuestionBank(
     val questions: List<SpeedrunQuestion>,
 )
 
 /**
- * Loads the speedrun question bank bundled in `assets/speedrun/questions.json`.
+ * Loads the speedrun question bank bundled in `assets/speedrun/questions.json`, and optionally
+ * merges it with AI-generated questions pulled from Firestore.
  *
- * This is a plain read of a packaged asset; it does not touch the Anki collection.
+ * This is a plain read of packaged assets; it does not touch the Anki collection.
  */
 object SpeedrunQuestions {
     private const val ASSET_PATH = "speedrun/questions.json"
@@ -56,7 +58,25 @@ object SpeedrunQuestions {
 
     /** Reads and parses every question from the bundled asset. */
     fun load(context: Context): List<SpeedrunQuestion> {
-        val raw = context.assets.open(ASSET_PATH).bufferedReader().use { it.readText() }
+        val raw =
+            context.assets
+                .open(ASSET_PATH)
+                .bufferedReader()
+                .use { it.readText() }
         return json.decodeFromString<SpeedrunQuestionBank>(raw).questions
+    }
+
+    /**
+     * Returns the union of the bundled questions and any cached generated questions from Firestore,
+     * deduplicated by [SpeedrunQuestion.id] (bundled questions take precedence on collision).
+     *
+     * Call this on startup instead of [load].  Kick off [SpeedrunQuestionSync.pullAndCache] in the
+     * background afterwards so the cache is fresh for the next session.
+     */
+    fun loadMerged(context: Context): List<SpeedrunQuestion> {
+        val bundled = load(context)
+        val cached = SpeedrunQuestionSync.readCache(context)
+        val bundledIds = bundled.map { it.id }.toHashSet()
+        return bundled + cached.filter { it.id !in bundledIds }
     }
 }
