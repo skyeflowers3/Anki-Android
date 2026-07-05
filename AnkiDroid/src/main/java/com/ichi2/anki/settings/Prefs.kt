@@ -243,9 +243,9 @@ open class PrefsRepository(
 
     // ****************************************** Sync ****************************************** //
 
-    val isAutoSyncEnabled by booleanPref(R.string.automatic_sync_choice_key, false)
+    val isAutoSyncEnabled by booleanPref(R.string.automatic_sync_choice_key, true)
     val displaySyncStatus by booleanPref(R.string.sync_status_badge_key, defaultValue = true)
-    var allowSyncOnMeteredConnections by booleanPref(R.string.metered_sync_key, defaultValue = false)
+    var allowSyncOnMeteredConnections by booleanPref(R.string.metered_sync_key, defaultValue = true)
 
     var username by stringPref(R.string.username_key)
     var hkey by stringPref(R.string.hkey_key)

@@ -43,6 +43,7 @@ import com.ichi2.anki.common.preferences.sharedPrefs
 import com.ichi2.anki.common.utils.android.HandlerUtils
 import com.ichi2.anki.dialogs.help.HelpDialog
 import com.ichi2.anki.libanki.CardId
+import com.ichi2.anki.speedrun.SpeedrunScoreActivity
 import com.ichi2.anki.utils.ext.showDialogFragment
 import com.ichi2.anki.workarounds.FullDraggableContainerFix
 import com.ichi2.utils.IntentUtil
@@ -355,6 +356,36 @@ abstract class NavigationDrawerActivity(
                     R.id.nav_stats -> {
                         Timber.i("Navigating to stats")
                         openStatistics()
+                    }
+
+                    R.id.nav_mcat_readiness -> {
+                        Timber.i("Navigating to MCAT readiness")
+                        startActivity(
+                            SpeedrunScoreActivity.getIntent(
+                                this@NavigationDrawerActivity,
+                                SpeedrunScoreActivity.Mode.READINESS,
+                            ),
+                        )
+                    }
+
+                    R.id.nav_mcat_performance -> {
+                        Timber.i("Navigating to MCAT performance")
+                        startActivity(
+                            SpeedrunScoreActivity.getIntent(
+                                this@NavigationDrawerActivity,
+                                SpeedrunScoreActivity.Mode.PERFORMANCE,
+                            ),
+                        )
+                    }
+
+                    R.id.nav_mcat_memory -> {
+                        Timber.i("Navigating to MCAT memory")
+                        startActivity(
+                            SpeedrunScoreActivity.getIntent(
+                                this@NavigationDrawerActivity,
+                                SpeedrunScoreActivity.Mode.MEMORY,
+                            ),
+                        )
                     }
 
                     R.id.nav_settings -> {

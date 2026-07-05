@@ -137,6 +137,7 @@ object PreferenceUpgradeService {
                     yield(UpgradeThemes())
                     yield(UpgradeAnswerControls())
                     yield(RemoveDeveloperFindReplace())
+                    yield(ForceEnableAutoSync())
                 }
 
             /** Returns a list of preference upgrade classes which have not been applied */
@@ -906,6 +907,19 @@ object PreferenceUpgradeService {
                 preferences.edit {
                     remove("browserFindReplace")
                 }
+            }
+        }
+
+        /**
+         * Fork behaviour: turn on automatic synchronization for everyone, overwriting any existing
+         * value (including users who previously had it off). This is a deliberate one-time override
+         * so all users auto-sync; users may still turn it off afterwards.
+         *
+         * Key is [R.string.automatic_sync_choice_key] ("automaticSyncMode").
+         */
+        internal class ForceEnableAutoSync : PreferenceUpgrade(29) {
+            override fun upgrade(preferences: SharedPreferences) {
+                preferences.edit { putBoolean("automaticSyncMode", true) }
             }
         }
     }

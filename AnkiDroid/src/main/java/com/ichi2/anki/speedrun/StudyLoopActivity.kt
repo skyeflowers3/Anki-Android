@@ -108,11 +108,22 @@ class StudyLoopActivity : NavigationDrawerActivity(R.layout.activity_study_loop)
         initNavigationDrawer()
         supportActionBar?.title = getString(R.string.app_name)
         homeDeckId = intent.getLongExtra(EXTRA_DECK_ID, 0)
+        mergeRemoteRecordsInBackground()
 
         lifecycleScope.launch {
             questions = withContext(Dispatchers.IO) { SpeedrunQuestions.load(this@StudyLoopActivity) }
             practiceQueue = questions.shuffled()
             showTransition()
+        }
+    }
+
+    /** Pull-and-merge performance records from Firestore so scores reflect other devices. */
+    private fun mergeRemoteRecordsInBackground() {
+        if (!SpeedrunFirestoreSync.isConfigured) return
+        lifecycleScope.launch(Dispatchers.IO) {
+            val pulled = SpeedrunFirestoreSync.pull()
+            pulled.forEach { SpeedrunDb.insertPulledRecord(this@StudyLoopActivity, it) }
+            if (pulled.isNotEmpty()) Timber.i("speedrun: merged %d remote records", pulled.size)
         }
     }
 
@@ -225,6 +236,12 @@ class StudyLoopActivity : NavigationDrawerActivity(R.layout.activity_study_loop)
             questionsAnswered++
             if (result.conceptCorrect) conceptCorrectCount++
             if (result.answerCorrect) answerCorrectCount++
+            // Fire-and-forget push to Firestore; mark synced locally if it succeeds.
+            lifecycleScope.launch(Dispatchers.IO) {
+                if (SpeedrunFirestoreSync.push(result.record)) {
+                    SpeedrunDb.markSynced(this@StudyLoopActivity, result.record.syncKey)
+                }
+            }
             showReveal(question, result)
         }
     }
@@ -275,6 +292,16 @@ class StudyLoopActivity : NavigationDrawerActivity(R.layout.activity_study_loop)
         column.addView(heading("Session complete"))
         column.addView(body("Concepts identified correctly: $conceptCorrectCount of $questionsAnswered"))
         column.addView(body("Answers correct: $answerCorrectCount of $questionsAnswered"))
+        column.addView(
+            primaryButton("View readiness") {
+                startActivity(SpeedrunScoreActivity.getIntent(this))
+            },
+        )
+        column.addView(
+            primaryButton("Performance") {
+                startActivity(SpeedrunScoreActivity.getIntent(this, SpeedrunScoreActivity.Mode.PERFORMANCE))
+            },
+        )
         column.addView(primaryButton("Finish") { finish() })
         setScreen(scroll(column))
     }
@@ -432,13 +459,14 @@ class StudyLoopActivity : NavigationDrawerActivity(R.layout.activity_study_loop)
         Button(this).apply {
             text = label
             layoutParams =
-                LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                ).apply {
-                    topMargin = dp(16)
-                    gravity = Gravity.END
-                }
+                LinearLayout
+                    .LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ).apply {
+                        topMargin = dp(16)
+                        gravity = Gravity.END
+                    }
             setOnClickListener { onClick() }
         }
 

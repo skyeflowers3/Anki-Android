@@ -11,6 +11,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.res.Resources
+import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -57,6 +58,7 @@ import com.ichi2.anki.services.AlarmManagerService
 import com.ichi2.anki.services.NotificationService
 import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.settings.PrefsRepository
+import com.ichi2.anki.sync.NetworkConnectivityObserver
 import com.ichi2.anki.ui.dialogs.ActivityAgnosticDialogs
 import com.ichi2.utils.ExceptionUtil
 import com.ichi2.utils.LanguageUtil
@@ -173,6 +175,7 @@ open class AnkiDroidApp :
         setup("makeBackendUsable") { makeBackendUsable(this) }
         setupNotifications()
         setupAppLifecycleObserver()
+        setupNetworkConnectivityObserver()
         setupBackendChangeManager()
 
         // Probe WebView availability before any other init touches it (#5794).
@@ -337,6 +340,14 @@ open class AnkiDroidApp :
                 .get()
                 .lifecycle
                 .addObserver(appLifecycleObserver)
+        }
+
+    /** Sync when connectivity is regained while the app is running (auto-sync conditions permitting). */
+    private fun setupNetworkConnectivityObserver() =
+        setup("setupNetworkConnectivityObserver") {
+            val observer = NetworkConnectivityObserver(applicationContext)
+            val cm = applicationContext.getSystemService(ConnectivityManager::class.java)
+            cm?.registerDefaultNetworkCallback(observer)
         }
 
     /**

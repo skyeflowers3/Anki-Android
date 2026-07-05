@@ -137,6 +137,15 @@ android {
 
         def apiKey = properties.getProperty("ANALYTICS_API_KEY") ?: System.getenv("ANALYTICS_API_KEY") ?: "DUMMY_API_XXX"
         buildConfigField "String", "ANALYTICS_API_KEY", "\"${apiKey}\""
+
+        // Speedrun Firestore sync config. Sourced from `local.properties` (or env vars); empty by
+        // default so contributor builds compile with sync disabled. See SpeedrunFirestoreSync.
+        def speedrunApiKey = properties.getProperty("speedrunApiKey") ?: System.getenv("SPEEDRUN_API_KEY") ?: ""
+        def speedrunProjectId = properties.getProperty("speedrunProjectId") ?: System.getenv("SPEEDRUN_PROJECT_ID") ?: "brillianter-app"
+        def speedrunSyncId = properties.getProperty("speedrunSyncId") ?: System.getenv("SPEEDRUN_SYNC_ID") ?: ""
+        buildConfigField "String", "SPEEDRUN_API_KEY", "\"${speedrunApiKey}\""
+        buildConfigField "String", "SPEEDRUN_PROJECT_ID", "\"${speedrunProjectId}\""
+        buildConfigField "String", "SPEEDRUN_SYNC_ID", "\"${speedrunSyncId}\""
     }
     signingConfigs {
         release {

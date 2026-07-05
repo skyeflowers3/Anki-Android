@@ -17,6 +17,18 @@
             android:id="@+id/nav_stats"
             android:icon="@drawable/ic_bar_chart_black"
             android:title="@string/statistics"/>
+        <item
+            android:id="@+id/nav_mcat_readiness"
+            android:icon="@drawable/ic_bar_chart_black"
+            android:title="Readiness"/>
+        <item
+            android:id="@+id/nav_mcat_performance"
+            android:icon="@drawable/ic_bar_chart_black"
+            android:title="Performance"/>
+        <item
+            android:id="@+id/nav_mcat_memory"
+            android:icon="@drawable/ic_bar_chart_black"
+            android:title="Memory"/>
     </group>
     <group  android:id="@+id/group2">
         <item

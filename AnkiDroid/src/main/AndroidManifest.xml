@@ -392,6 +392,10 @@
             android:configChanges="orientation|screenSize"
             android:exported="false" />
         <activity
+            android:name="com.ichi2.anki.speedrun.SpeedrunScoreActivity"
+            android:configChanges="orientation|screenSize"
+            android:exported="false" />
+        <activity
             android:name="com.ichi2.anki.preferences.PreferencesActivity"
             android:exported="false"
             android:configChanges="screenSize"

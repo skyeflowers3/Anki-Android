@@ -68,6 +68,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import anki.collection.OpChanges
+import anki.import_export.ImportAnkiPackageOptions
 import anki.sync.SyncStatusResponse
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.snackbar.BaseTransientBottomBar
@@ -162,6 +163,7 @@ import com.ichi2.anki.snackbar.SnackbarBuilder
 import com.ichi2.anki.snackbar.showSnackbar
 import com.ichi2.anki.speedrun.StudyLoopActivity
 import com.ichi2.anki.sync.MeteredSyncPolicy
+import com.ichi2.anki.sync.NetworkConnectivityObserver
 import com.ichi2.anki.sync.launchCatchingRequiringOneWaySyncDiscardUndo
 import com.ichi2.anki.ui.BottomFadeFrameLayout
 import com.ichi2.anki.ui.ResizablePaneManager
@@ -507,6 +509,22 @@ open class DeckPicker :
         handleStartup()
 
         registerReceiver()
+
+        // When the network reconnects (detected by NetworkConnectivityObserver), run an
+        // immediate foreground sync so the user sees it complete — rather than relying solely
+        // on the silent WorkManager background job that gives no visual feedback.
+        var lastHandledReconnectMs = 0L
+        lifecycleScope.launch {
+            NetworkConnectivityObserver.lastReconnectMs
+                .flowWithLifecycle(lifecycle, androidx.lifecycle.Lifecycle.State.RESUMED)
+                .collect { reconnectMs ->
+                    if (reconnectMs > lastHandledReconnectMs) {
+                        lastHandledReconnectMs = reconnectMs
+                        Timber.i("Network reconnect signal received — triggering sync")
+                        sync()
+                    }
+                }
+        }
 
         // create inherited navigation drawer layout here so that it can be used by parent class
         initNavigationDrawer()
@@ -1691,10 +1709,40 @@ open class DeckPicker :
      */
     private fun onFinishedStartup() {
         launchCatchingTask {
+            importBundledDeckIfNeeded()
             if (!automaticSync()) {
                 BackupPromptDialog.showIfAvailable(this@DeckPicker)
             }
         }
+    }
+
+    /**
+     * On first launch, silently imports the deck bundled in assets so the app works
+     * out-of-the-box without any manual import or AnkiWeb sync.
+     */
+    private suspend fun importBundledDeckIfNeeded() {
+        val prefs = sharedPrefs()
+        if (prefs.getBoolean("bundledDeckImported", false)) return
+        prefs.edit { putBoolean("bundledDeckImported", true) }
+        withContext(Dispatchers.IO) {
+            try {
+                val tmpFile = File(cacheDir, "mcat_deck.apkg")
+                assets.open("preloaded/mcat_deck.apkg").use { input ->
+                    tmpFile.outputStream().use { input.copyTo(it) }
+                }
+                withCol {
+                    importAnkiPackage(
+                        tmpFile.canonicalPath,
+                        ImportAnkiPackageOptions.getDefaultInstance(),
+                    )
+                }
+                tmpFile.delete()
+                Timber.i("Bundled deck imported successfully")
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to import bundled deck")
+            }
+        }
+        updateDeckList()
     }
 
     private fun showCollectionErrorDialog() {

@@ -16,6 +16,16 @@
 # AnkiDroid
 A semi-official port of the open source [Anki](https://apps.ankiweb.net/index.html) spaced repetition flashcard system to Android. Memorize anything with AnkiDroid!
 
+## Installing the App
+
+A pre-built debug APK (arm64, for most modern Android phones) is available at:
+
+```
+release/AnkiDroid-arm64-debug.apk
+```
+
+Sideload it by transferring the file to your Android device and tapping to install (you may need to enable "Install from unknown sources" in Settings). The MCAT deck is bundled and imports automatically on first launch.
+
 <img src="docs/graphics/logos/ankidroid_logo.png" align="right" width="40%" height="100%"></img>
 
 ### Features
