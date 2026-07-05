@@ -18,6 +18,10 @@
             android:icon="@drawable/ic_bar_chart_black"
             android:title="@string/statistics"/>
         <item
+            android:id="@+id/nav_study_loop"
+            android:icon="@drawable/ic_bar_chart_black"
+            android:title="Study Loop"/>
+        <item
             android:id="@+id/nav_mcat_readiness"
             android:icon="@drawable/ic_bar_chart_black"
             android:title="Readiness"/>

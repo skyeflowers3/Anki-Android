@@ -507,7 +507,7 @@ class StudyLoopActivity : NavigationDrawerActivity(R.layout.activity_study_loop)
         const val EXTRA_DECK_ID = "deckId"
 
         /** Top-level deck name that triggers the speedrun study loop. */
-        const val TRIGGER_DECK_NAME = "AnKing-MCAT"
+        const val TRIGGER_DECK_NAME = "MCAT Study Blocks"
 
         fun getIntent(
             context: Context,

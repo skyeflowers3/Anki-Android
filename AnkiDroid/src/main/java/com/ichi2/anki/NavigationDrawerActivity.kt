@@ -30,9 +30,11 @@ import androidx.core.view.size
 import androidx.drawerlayout.widget.ClosableDrawerLayout
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.viewbinding.ViewBinding
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.navigation.NavigationView
+import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.IntentHandler.Companion.grantedStoragePermissions
 import com.ichi2.anki.NoteEditorFragment.Companion.NoteEditorCaller
 import com.ichi2.anki.common.android.animationEnabled
@@ -44,9 +46,13 @@ import com.ichi2.anki.common.utils.android.HandlerUtils
 import com.ichi2.anki.dialogs.help.HelpDialog
 import com.ichi2.anki.libanki.CardId
 import com.ichi2.anki.speedrun.SpeedrunScoreActivity
+import com.ichi2.anki.speedrun.StudyLoopActivity
 import com.ichi2.anki.utils.ext.showDialogFragment
 import com.ichi2.anki.workarounds.FullDraggableContainerFix
 import com.ichi2.utils.IntentUtil
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import com.ichi2.anki.common.android.R as CommonR
 
@@ -356,6 +362,26 @@ abstract class NavigationDrawerActivity(
                     R.id.nav_stats -> {
                         Timber.i("Navigating to stats")
                         openStatistics()
+                    }
+
+                    R.id.nav_study_loop -> {
+                        Timber.i("Navigating to Study Loop")
+                        lifecycleScope.launch {
+                            val deckId =
+                                withContext(Dispatchers.IO) {
+                                    withCol {
+                                        decks
+                                            .allNamesAndIds()
+                                            .firstOrNull { it.name == StudyLoopActivity.TRIGGER_DECK_NAME }
+                                            ?.id
+                                    }
+                                }
+                            if (deckId != null) {
+                                startActivity(StudyLoopActivity.getIntent(this@NavigationDrawerActivity, deckId))
+                            } else {
+                                Timber.w("Study Loop deck '%s' not found", StudyLoopActivity.TRIGGER_DECK_NAME)
+                            }
+                        }
                     }
 
                     R.id.nav_mcat_readiness -> {
