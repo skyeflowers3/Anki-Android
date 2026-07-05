@@ -38,15 +38,20 @@ object SpeedrunScore {
     /** Total MCAT topics tracked across all sections (Essential-Equations is optional/supplemental). */
     const val TOTAL_TOPICS = 7
 
+    /**
+     * Topics that count toward a section's answered/correct totals but are exempt from the
+     * per-topic minimum ([MULTI_TOPIC_MIN_ANSWERED]).  Essential-Equations is supplemental —
+     * students shouldn't be blocked from seeing a B/B score just because they haven't drilled it.
+     */
+    val OPTIONAL_TOPICS = setOf("Essential-Equations")
+
     /** MCAT sections and the [speedrun topics][SpeedrunQuestion.topic] that roll up into each. */
     enum class Section(
         val code: String,
         val displayName: String,
         val topics: List<String>,
     ) {
-        // Essential-Equations is intentionally excluded: it is supplemental and should not block
-        // the B/B score. Its coverage is surfaced separately as a recommendation hint.
-        BB("B/B", "Biological & Biochemical", listOf("Biology", "Biochemistry")),
+        BB("B/B", "Biological & Biochemical", listOf("Biology", "Biochemistry", "Essential-Equations")),
         CP("C/P", "Chemical & Physical", listOf("General-Chemistry", "Organic-Chemistry", "Physics-and-Math")),
         PS("P/S", "Psychological & Social", listOf("Behavioral")),
         CARS("CARS", "Critical Analysis & Reasoning", listOf("CARS")),
@@ -66,10 +71,7 @@ object SpeedrunScore {
 
     data class Projection(
         val sections: List<SectionScore>,
-        /**
-         * Estimated total score (472–528). Always non-null when any answers exist.
-         * Sections below threshold contribute a neutral 125; [estimated] is true in that case.
-         */
+        /** Sum of the four section scores (472–528), or null until every section has a score. */
         val total: Int?,
         /** Lower/upper bound of the ~95% confidence interval, or null when [total] is null. */
         val low: Int?,
@@ -81,8 +83,6 @@ object SpeedrunScore {
         val totalAnswered: Int,
         /** Answers recorded for the Essential-Equations topic (tracked separately as optional). */
         val essentialEquationsAnswered: Int,
-        /** True when at least one section is still below threshold (score uses neutral 125 for those). */
-        val estimated: Boolean,
     )
 
     /** Readiness score for a section given its accuracy: `118 + clamp((acc*CALIBRATION − 0.25)/0.75, 0, 1) * 14`. */
@@ -101,7 +101,9 @@ object SpeedrunScore {
 
                 val meetsPerTopic =
                     section.topics.size < 3 ||
-                        section.topics.all { (topicStats[it]?.answered ?: 0) >= MULTI_TOPIC_MIN_ANSWERED }
+                        section.topics
+                            .filter { it !in OPTIONAL_TOPICS }
+                            .all { (topicStats[it]?.answered ?: 0) >= MULTI_TOPIC_MIN_ANSWERED }
                 val hasEnough = answered >= SECTION_MIN_ANSWERED && meetsPerTopic
 
                 SectionScore(
@@ -120,27 +122,22 @@ object SpeedrunScore {
                 .distinct()
                 .count { (topicStats[it]?.answered ?: 0) >= MIN_ANSWERED_FOR_COVERAGE }
 
-        val estimated = !sectionScores.all { it.readiness != null }
-        // Use the real readiness for sections with enough data; neutral 125 for the rest.
-        val total = if (totalAnswered > 0) sectionScores.sumOf { it.readiness ?: 125 } else null
+        val total = if (sectionScores.all { it.readiness != null }) sectionScores.sumOf { it.readiness!! } else null
 
         var low: Int? = null
         var high: Int? = null
         var confidence = ""
         if (total != null) {
-            // Widen the margin when some sections are still estimated.
-            val baseMargin =
+            val margin =
                 when {
                     totalAnswered < 100 -> 6
                     totalAnswered < 200 -> 4
                     else -> 3
                 }
-            val margin = if (estimated) baseMargin + 4 else baseMargin
             low = total - margin
             high = total + margin
             confidence =
                 when {
-                    estimated -> "low"
                     totalAnswered < 100 -> "low"
                     totalAnswered < 200 -> "medium"
                     else -> "high"
@@ -156,7 +153,6 @@ object SpeedrunScore {
             topicsWithData = topicsWithData,
             totalAnswered = totalAnswered,
             essentialEquationsAnswered = topicStats["Essential-Equations"]?.answered ?: 0,
-            estimated = estimated,
         )
     }
 }

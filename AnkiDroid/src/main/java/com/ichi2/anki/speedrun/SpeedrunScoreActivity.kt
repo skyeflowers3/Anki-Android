@@ -103,26 +103,22 @@ class SpeedrunScoreActivity : NavigationDrawerActivity(R.layout.activity_speedru
         column.addView(heading("Readiness"))
 
         if (p.total != null) {
-            val label = if (p.estimated) "Estimated MCAT Score" else "Projected MCAT Score"
-            column.addView(scoreBanner("$label: ${p.total}   (${p.low}–${p.high})"))
+            column.addView(scoreBanner("Projected MCAT: ${p.total}   (${p.low}–${p.high})"))
             column.addView(
                 body("Confidence: ${p.confidence}   ·   ${p.topicsWithData}/${SpeedrunScore.TOTAL_TOPICS} topics covered"),
             )
         } else {
-            column.addView(body("Answer some questions to see your estimated score."))
+            column.addView(
+                body(
+                    "Not enough data yet " +
+                        "(${p.topicsWithData}/${SpeedrunScore.TOTAL_TOPICS} topics · ${p.totalAnswered} answered)",
+                ),
+            )
         }
 
         column.addView(spacer(12))
 
-        // Recommendations: sections still below threshold.
-        val sectionsNeedingData = p.sections.filter { it.readiness == null && it.answered < SpeedrunScore.SECTION_MIN_ANSWERED }
-        for (s in sectionsNeedingData) {
-            val remaining = SpeedrunScore.SECTION_MIN_ANSWERED - s.answered
-            column.addView(body("Recommendation: Answer $remaining more ${s.section.code} questions to confirm this section's score."))
-            column.addView(spacer(4))
-        }
-
-        // Essential Equations recommendation.
+        // Recommendation hint if Essential-Equations hasn't been practiced yet.
         if (p.essentialEquationsAnswered < SpeedrunScore.MIN_ANSWERED_FOR_COVERAGE) {
             column.addView(body("Recommendation: Complete the Essential Equations deck to strengthen recall."))
             column.addView(spacer(8))
