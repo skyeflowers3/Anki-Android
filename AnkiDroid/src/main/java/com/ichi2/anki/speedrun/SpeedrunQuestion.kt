@@ -22,11 +22,13 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 /**
- * A single MCAT-style question from the bundled speedrun question bank.
+ * A single MCAT-style question from the bundled speedrun question bank or from Firestore.
  *
  * The JSON structure mirrors the desktop speedrun app (`speedrun/questions.json`) so the two
  * stay interchangeable: each question has an id, a passage, the question stem, four [choices],
  * the [correctAnswer] (which is one of the [choices]), a [topic] and a [concept].
+ *
+ * Questions pulled from Firestore have [isGenerated] = true and a non-empty [source] string.
  */
 @Serializable
 data class SpeedrunQuestion(
@@ -37,6 +39,10 @@ data class SpeedrunQuestion(
     @SerialName("correct_answer") val correctAnswer: String,
     val topic: String,
     val concept: String,
+    /** Non-empty for AI-generated questions (e.g. "GPT-4o · Biology"). */
+    val source: String = "",
+    /** True for questions pulled from Firestore; false for bundled questions. */
+    @SerialName("is_generated") val isGenerated: Boolean = false,
 )
 
 /** Package-internal so [SpeedrunQuestionSync] can serialise/deserialise the cache file. */

@@ -18,6 +18,8 @@ package com.ichi2.anki.speedrun
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.Typeface
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
@@ -266,6 +268,12 @@ class StudyLoopActivity : NavigationDrawerActivity(R.layout.activity_study_loop)
         result: SpeedrunAnswerResult,
     ) {
         val column = column()
+        column.addView(questionProgressBar(questionIndex + 1, blockQuestions.size))
+        column.addView(spacer(8))
+        if (question.isGenerated) {
+            column.addView(aiGeneratedLabel(question.source))
+            column.addView(spacer(4))
+        }
         column.addView(heading("Results"))
         column.addView(
             body(
@@ -396,6 +404,17 @@ class StudyLoopActivity : NavigationDrawerActivity(R.layout.activity_study_loop)
         onSubmit: (String) -> Unit,
     ) {
         val column = column()
+
+        // Progress bar: shows position within the current question block.
+        column.addView(questionProgressBar(questionIndex + 1, blockQuestions.size))
+        column.addView(spacer(8))
+
+        // AI-generated label + source.
+        if (question.isGenerated) {
+            column.addView(aiGeneratedLabel(question.source))
+            column.addView(spacer(4))
+        }
+
         column.addView(body(question.passage))
         column.addView(body(question.question))
         column.addView(heading(prompt))
@@ -485,6 +504,70 @@ class StudyLoopActivity : NavigationDrawerActivity(R.layout.activity_study_loop)
         }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+    /**
+     * Thin horizontal progress bar showing position within the current question block.
+     * e.g. current=2, total=5 → 2 filled segments + 3 empty.
+     */
+    private fun questionProgressBar(
+        current: Int,
+        total: Int,
+    ): LinearLayout {
+        val row =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            }
+        val label =
+            TextView(this).apply {
+                text = "$current / $total"
+                textSize = 12f
+                setTextColor(Color.parseColor("#616161"))
+                layoutParams =
+                    LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                        gravity = Gravity.CENTER_VERTICAL
+                        marginEnd = dp(8)
+                    }
+            }
+        val track =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams =
+                    LinearLayout.LayoutParams(0, dp(6), 1f).apply {
+                        gravity = Gravity.CENTER_VERTICAL
+                    }
+                setBackgroundColor(Color.parseColor("#E0E0E0"))
+            }
+        val filled = current.toFloat() / total.toFloat()
+        track.addView(
+            View(this).apply {
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, filled)
+                setBackgroundColor(Color.parseColor("#1976D2"))
+            },
+        )
+        track.addView(
+            View(this).apply {
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f - filled)
+            },
+        )
+        row.addView(label)
+        row.addView(track)
+        return row
+    }
+
+    /** Small italic label shown above AI-generated questions. */
+    private fun aiGeneratedLabel(source: String): TextView =
+        TextView(this).apply {
+            text = if (source.isNotEmpty()) "AI-generated · $source" else "AI-generated"
+            textSize = 12f
+            setTypeface(null, Typeface.ITALIC)
+            setTextColor(Color.parseColor("#616161"))
+        }
+
+    private fun spacer(heightDp: Int): View =
+        View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(heightDp))
+        }
 
     private val BlockType.displayName: String
         get() =

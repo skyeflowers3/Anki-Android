@@ -137,6 +137,8 @@ object SpeedrunQuestionSync {
                         correctAnswer = fields.stringField("correct_answer"),
                         topic = fields.stringField("topic"),
                         concept = fields.stringField("concept"),
+                        source = fields.stringField("source"),
+                        isGenerated = true,
                     ),
                 )
             } catch (e: Exception) {
